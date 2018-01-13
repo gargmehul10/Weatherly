@@ -25,6 +25,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.text.Html;
 import android.util.Log;
+import android.util.TypedValue;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -44,7 +45,7 @@ import static android.util.Log.d;
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener{
 
-    TextView cityField, detailsField, currentTemperatureField, humidity_field, pressure_field, weatherIcon, updatedField;
+    TextView cityField, detailsField, currentTemperatureField, humidity_field, pressure_field, weatherIcon, updatedField, windspeed;
 
     Typeface weatherFont;
 
@@ -55,6 +56,9 @@ public class MainActivity extends AppCompatActivity
 
     public static final String PREFS = "examplePrefs";
     public static final String PREFS1 = "examplePrefs1";
+    public static final String PREFS2 = "examplePrefs2";
+    public static final String PREFS3 = "examplePrefs3";
+    public static final String PREFS4 = "examplePrefs4";
 
     private double currentLatitude,currentLongitude;
 
@@ -73,6 +77,7 @@ public class MainActivity extends AppCompatActivity
 
         weatherFont = Typeface.createFromAsset(getAssets(), "fonts/weathericons-regular-webfont.ttf");
 
+        windspeed = (TextView)findViewById(R.id.wind_speed);
         cityField = (TextView)findViewById(R.id.city_field);
         updatedField = (TextView)findViewById(R.id.updated_field);
         detailsField = (TextView)findViewById(R.id.details_field);
@@ -114,22 +119,92 @@ public class MainActivity extends AppCompatActivity
         Log:d("Tag :: ", latitude + " " + longitude);
 
         Function.placeIdTask asyncTask =new Function.placeIdTask(new Function.AsyncResponse() {
-            public void processFinish(String weather_city, String weather_description, String weather_temperature, String weather_humidity, String weather_pressure, String weather_updatedOn, String weather_iconText, String sun_rise) {
+            public void processFinish(String wind_speed, String weather_city, String weather_description, String weather_temperature, String weather_humidity, String weather_pressure, String weather_updatedOn, String weather_iconText, String sun_rise) {
+
+                String final_temperature, final_pressure, final_windspeed;
+
+                SharedPreferences ex1 = getSharedPreferences(PREFS2, 0);
+                String c = ex1.getString("temp_scale", "not found");
+                if(c.equals("not found")) {
+                    SharedPreferences.Editor editor = ex1.edit();
+                    editor.putString("temp_scale", "Celsius");
+                    editor.commit();
+                }
+
+                SharedPreferences ex2 = getSharedPreferences(PREFS2, 0);
+                String c1=ex2.getString("temp_scale", "not found");
+
+                if(c1.equals("Celsius"))
+                    final_temperature = weather_temperature + "°C";
+                else if(c1.equals("Fahrenheit"))
+                    final_temperature = String.format("%.2f", Double.parseDouble(weather_temperature)*9/5 + 32) + "°F";
+                else
+                    final_temperature = String.format("%.2f", Double.parseDouble(weather_temperature) + 273) + " K";
+
+                SharedPreferences ex3 = getSharedPreferences(PREFS3, 0);
+                String c2 = ex3.getString("pressure_scale", "not found");
+                if(c2.equals("not found")) {
+                    SharedPreferences.Editor editor1 = ex3.edit();
+                    editor1.putString("pressure_scale", "hPa");
+                    editor1.commit();
+                }
+
+                SharedPreferences ex4 = getSharedPreferences(PREFS3, 0);
+                String c3=ex4.getString("pressure_scale", "not found");
+
+                if(c3.equals("hPa"))
+                    final_pressure = weather_pressure + " hPa";
+                else if(c3.equals("atm"))
+                    final_pressure = String.format("%.4f", Double.parseDouble(weather_pressure) * 0.00098692326) + " atm";
+                else if(c3.equals("torr"))
+                    final_pressure = String.format("%.4f", Double.parseDouble(weather_pressure) * 0.750061683) + " torr";
+                else if(c3.equals("bar"))
+                    final_pressure = String.format("%.4f", Double.parseDouble(weather_pressure) * 0.001) + " bar";
+                else
+                    final_pressure = String.format("%.4f", Double.parseDouble(weather_pressure) * 0.7500616827) + " mmHg";
+
+                SharedPreferences ex5 = getSharedPreferences(PREFS4, 0);
+                String c4 = ex5.getString("windspeed_scale", "not found");
+                if(c4.equals("not found")) {
+                    SharedPreferences.Editor editor1 = ex5.edit();
+                    editor1.putString("windspeed_scale", "km/h");
+                    editor1.commit();
+                }
+
+                SharedPreferences ex6 = getSharedPreferences(PREFS4, 0);
+                String c5=ex6.getString("windspeed_scale", "not found");
+
+                if(c5.equals("km/h"))
+                    final_windspeed = wind_speed + " km/h";
+                else if(c5.equals("m/s"))
+                    final_windspeed = String.format("%.4f", Double.parseDouble(wind_speed) * 0.3) + " m/s";
+                else if(c5.equals("mph"))
+                    final_windspeed = String.format("%.4f", Double.parseDouble(wind_speed) * 0.6) + " mph";
+                else
+                    final_windspeed = String.format("%.4f", Double.parseDouble(wind_speed) * 0.5) + " knots";
+
+                windspeed.setText("Wind speed: " + final_windspeed);
+
+                int l=city.length();
+                if(l>=100)
+                    cityField.setTextSize(TypedValue.COMPLEX_UNIT_SP, 15);
+                if(l>80 && l<100)
+                    cityField.setTextSize(TypedValue.COMPLEX_UNIT_SP, 17);
+
+                Log.d("TAG :: ", "length is " + l);
 
                 cityField.setText(city);
-                updatedField.setText(weather_updatedOn);
+                updatedField.setText("Last update: " + weather_updatedOn);
                 detailsField.setText(weather_description);
-                currentTemperatureField.setText(weather_temperature);
+                currentTemperatureField.setText(final_temperature);
                 humidity_field.setText("Humidity: " + weather_humidity);
-                pressure_field.setText("Pressure: " + weather_pressure);
+                pressure_field.setText("Pressure: " + final_pressure);
                 weatherIcon.setText(Html.fromHtml(weather_iconText));
 
                 SharedPreferences mg1 = getSharedPreferences(PREFS1, 0);
-                String l1 = mg1.getString("weather", "not found");
-
-                    SharedPreferences.Editor editor = mg1.edit();
+                SharedPreferences.Editor editor = mg1.edit();
                     editor.putString("weather", "Location : "+city+"\nWeather : "+weather_description+"\nTemperature : "
-                    +weather_temperature+"\nHumidity : "+weather_humidity+"\nPressure : "+weather_pressure);
+                    +final_temperature+"\nHumidity : "+weather_humidity+"\nPressure : "+final_pressure+"\nWind speed : "+final_windspeed);
                     editor.commit();
             }
         });
@@ -178,8 +253,8 @@ public class MainActivity extends AppCompatActivity
             else
             {
                 Log.d("TAG :: ", "Unable to find current location.");
-                currentLatitude=0.0;
-                currentLongitude=0.0;
+                currentLatitude=-9999.99;
+                currentLongitude=-9999.99;
             }
         }
     }
@@ -223,6 +298,8 @@ public class MainActivity extends AppCompatActivity
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.action_settings) {
+            Intent intent12 = new Intent(MainActivity.this, SettingsActivity.class);
+            startActivity(intent12);
             return true;
         }
 
@@ -242,7 +319,7 @@ public class MainActivity extends AppCompatActivity
 
             Log.d("TAG :: current", currentLatitude+" "+currentLongitude);
 
-            if(currentLatitude == 0.0 && currentLongitude == 0.0)
+            if(currentLatitude == -9999.99 && currentLongitude == -9999.99)
             {
                 Toast.makeText(getApplicationContext(),
                         "Please turn on the GPS!",
@@ -278,6 +355,9 @@ public class MainActivity extends AppCompatActivity
 
         }  else if (id == R.id.nav_manage) {
 
+            Intent intent12 = new Intent(MainActivity.this, SettingsActivity.class);
+            startActivity(intent12);
+
         } else if (id == R.id.nav_share) {
 
             SharedPreferences mg1 = getSharedPreferences(PREFS1, 0);
@@ -305,7 +385,7 @@ public class MainActivity extends AppCompatActivity
         drawer.closeDrawer(GravityCompat.START);
         return true;
     }
-
+    
     private class GetLocation extends AsyncTask<Void, Void, Void> {
 
         @Override
